@@ -1,0 +1,46 @@
+services:
+  # MySQL-Datenbankdienst
+  mysql-db:
+    image: mysql:8.0
+    container_name: social-media-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "13306:3306"  # Port 13306 instead of 3306
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - social-media-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Spring Boot-Anwendungsdienst  
+  spring-app:
+    build: .
+    container_name: social-media-app
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      QUESTION_APP_SECRET: ${QUESTION_APP_SECRET}
+      QUESTION_EXPIRES_IN: ${QUESTION_EXPIRES_IN}
+      REFRESH_TOKEN_EXPIRES_IN: ${REFRESH_TOKEN_EXPIRES_IN}
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - social-media-network
+
+volumes:
+  mysql_data:
+
+networks:
+  social-media-network:
+    driver: bridge
